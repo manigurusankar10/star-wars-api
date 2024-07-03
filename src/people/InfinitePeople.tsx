@@ -1,0 +1,66 @@
+import { useInfiniteQuery } from "@tanstack/react-query";
+import React from "react";
+import InfiniteScroll from "react-infinite-scroller";
+import { Person } from "./Person";
+
+const baseUrl = "https://swapi-node.vercel.app";
+const initialUrl = baseUrl + "/api/people/";
+
+export function InfinitePeople() {
+
+  const fetchPeople = async ({ pageParam = initialUrl }) => {
+    const response = await fetch(pageParam);
+    return response.json();
+  };
+
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetching,
+    isLoading,
+    isError,
+    error
+  } = useInfiniteQuery({
+    queryKey: ["sw-people"],
+    queryFn: fetchPeople,
+    getNextPageParam: (lastPage) => {
+      return lastPage.next ? baseUrl + lastPage.next : undefined;
+    },
+    initialPageParam: undefined,
+  })
+
+  if (isLoading) {
+    return <div className="loading">Loading...</div>
+  }
+
+  if (isError) {
+    return <div className="loading">Error!!! {error.toString()}</div>
+  }
+
+  return (
+    <>
+      {isFetching && <div className="loading">Loading...</div>}
+      <InfiniteScroll
+        initialLoad={false}
+        hasMore={hasNextPage}
+        loadMore={() => {
+          if (!isFetching) {
+            fetchNextPage();
+          }
+        }}
+      >
+        {data.pages.map((pageData: any) => {
+          return pageData.results.map((person: { fields: { name: string; hair_color: string; eye_color: string; }; }) => {
+            return <Person 
+              key={person.fields.name}
+              name={person.fields.name}
+              hairColor={person.fields.hair_color}
+              eyeColor={person.fields.eye_color}
+            />
+          })
+        })}
+      </InfiniteScroll>
+    </>
+  );
+}
